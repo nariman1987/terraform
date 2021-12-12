@@ -2,6 +2,7 @@ terraform commented in main.tf
 
 
 terraform init
+
 terraform apply
 
 If you want to use s3 as share storage for modify tf state and lock
