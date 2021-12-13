@@ -15,162 +15,33 @@ terraform {
 
 module "webserver_cluster" {
   source = "../../../modules/services/webserver-cluster"
-  # cluster_name = "webserver-stage"
-  # db_remote_state_bucket = "bucket-nariman-lab-tech"
-  # db_remote_state_key = "stage/datastores/postgres/terraform.tfstate"
   key = "stage/datastores/postgres/terraform.tfstate"
   bucket = "bucket-nariman-lab-tech"
   cluster_name = "test"
 }
 
-# terraform {
-#   backend "s3" {
-#     key = "stage/services/webservercluster/terraform.tfstate"  
-#     bucket = "bucket-nariman-lab-tech"
-#     region = "us-east-1"
-#     dynamodb_table = "terraformUpAndRunningLocks"
-#     encrypt = true
-#   }
-# }
+output "alb_dns_name" {
+  value = module.webserver_cluster.alb_dns_name
+}
 
 
-# output "hostname" {
-#   value = data.terraform_remote_state.db.outputs.address
-# }
+resource "aws_autoscaling_schedule" "scale_out_during_business_hours" {
+  scheduled_action_name = "scale-out-during-business-hours"
+  min_size = 2
+  max_size = 6
+  desired_capacity = 4
+  recurrence = "0 9 * * *"
+  autoscaling_group_name = module.webserver_cluster.asg_name
+}
 
+resource "aws_autoscaling_schedule" "scale_in_at_night" {
+  scheduled_action_name = "scale-in-at-night"
+  min_size = 2
+  max_size = 6
+  desired_capacity = 2
+  recurrence = "0 17 * * *"
+  autoscaling_group_name = module.webserver_cluster.asg_name
+}
 
-
-# output "port" {
-#   value = data.terraform_remote_state.db.outputs.port
-# }
-
-
-
-
-# data "template_file" "user_data" {
-#   template = file("user-data.sh")
-#   vars = {
-#     server_port = var.server_port
-#     db_address = data.terraform_remote_state.db.outputs.address
-#     db_port = data.terraform_remote_state.db.outputs.port
-#   }
-# }
-
-# data "terraform_remote_state" "db" {
-#   backend = "s3"
-#   config = {
-#     bucket = "bucket-nariman-lab-tech"
-#     key = "stage/datastores/postgres/terraform.tfstate"
-#     region = "us-east-1"
-#   }
-# }
-
-# data "aws_vpc" "default" {
-#   default = true
-# }
-
-# data "aws_subnet_ids" "default" {
-#   vpc_id = data.aws_vpc.default.id
-# }
-
-# resource "aws_launch_configuration" "example" {
-#   image_id = "ami-083654bd07b5da81d"
-#   instance_type = "t2.micro"
-#   security_groups = [aws_security_group.sgweb.id]
-#   user_data = data.template_file.user_data.rendered
-#   lifecycle {
-#     create_before_destroy = true
-#   }
-
-# }
-
-# resource "aws_autoscaling_group" "example" {
-#   launch_configuration = aws_launch_configuration.example.name
-#   vpc_zone_identifier = data.aws_subnet_ids.default.ids
-#   target_group_arns = [aws_lb_target_group.tgasg.arn]
-#   health_check_type = "ELB"
-#   min_size = 2
-#   max_size = 10
-#   desired_capacity = 3
-# }
-
-# resource "aws_security_group" "sgweb" {
-#     name = "sgWeb"
-#     ingress {
-#         from_port = var.server_port
-#         to_port = var.server_port
-#         protocol = "tcp"
-#         cidr_blocks = ["0.0.0.0/0"]
-#     }
-    
-# }
-
-# resource "aws_lb" "example" {
-#   name = "albWeb"
-#   load_balancer_type = "application"
-#   subnets = data.aws_subnet_ids.default.ids
-#   security_groups = [aws_security_group.sgalb.id]
-# }
-
-# resource "aws_lb_listener" "http" {
-#   load_balancer_arn = aws_lb.example.arn
-#   port = 80
-#   protocol = "HTTP"
-#   default_action {
-#     type = "fixed-response"
-#     fixed_response {
-#       content_type = "text/plain"
-#       message_body = "404: page not found"
-#       status_code = 404
-#     }
-#   }
-# }
-
-# resource "aws_security_group" "sgalb" {
-#     name = "sgAlb"
-#     ingress {
-#         from_port = 80
-#         to_port = 80
-#         protocol = "tcp"
-#         cidr_blocks = ["0.0.0.0/0"]
-#     }
-#     egress {
-#         from_port = 0
-#         to_port = 0
-#         protocol = "-1"
-#         cidr_blocks = ["0.0.0.0/0"]
-#     }
-# }
-
-# resource "aws_lb_target_group" "tgasg" {
-#   name = "tgAsg"
-#   port = var.server_port
-#   protocol = "HTTP"
-#   vpc_id = data.aws_vpc.default.id 
-#   health_check {
-#       path = "/"
-#       protocol = "HTTP"
-#       matcher = "200"
-#       interval = 15
-#       timeout = 3
-#       healthy_threshold = 2
-#       unhealthy_threshold = 2
-
-#   }
-# }
-
-# resource "aws_lb_listener_rule" "static" {
-#   listener_arn = aws_lb_listener.http.arn
-#   priority = 100
-#   condition {
-#     path_pattern {
-#       values = [ "*" ]
-#     }
-#   }
-#   action {
-#       type = "forward"
-#       target_group_arn = aws_lb_target_group.tgasg.id
-#   }
-# }
 
 

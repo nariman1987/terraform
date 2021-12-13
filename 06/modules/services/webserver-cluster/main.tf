@@ -1,7 +1,9 @@
-
+output "asg_name" {
+  value = aws_autoscaling_group.example.name
+}
 
 data "template_file" "user_data" {
-  template = file("/home/nariman/Desktop/LPDF/terraform/06/modules/services/webserver-cluster/user-data.sh")
+  template = file("${path.module}/user-data.sh")
   vars = {
     server_port = var.server_port
     db_address = data.terraform_remote_state.db.outputs.address
@@ -127,5 +129,7 @@ resource "aws_lb_listener_rule" "static" {
       target_group_arn = aws_lb_target_group.tgasg.id
   }
 }
+
+
 
 
